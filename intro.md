@@ -2,24 +2,28 @@
 
 ## Introduction
 
-Unit testing is the dominant approach to testing in industry. In unit testing the programmer explicitly defines inputs and expected outputs for the function under test. The test coverage of unit testing is limited by the amount of effort the programmer puts in creating distinct input and output pairs. In practice, test coverage is often low.
+Unit testing is the dominant approach to testing in industry. Unit testing requires the programmer explicitly defines inputs and expected outputs for the function under test. The test coverage of unit testing is limited by the amount of effort the programmer expends in creating distinct input and output pairs. 
 
-Property based testing, or generative testing, is a lightweight extension of unit testing that aims to increase test coverage. Instead of the programmer explicitly specifying input and output, the programmer defines a process for generating inputs, which we call a **generator**, and properties that must hold for the output. By using the computer to generate the input, many more inputs can be generated than when the programmer must specify them by hand.
+Property based testing, or generative testing, is a lightweight extension of unit testing that aims to increase test coverage. Instead of the programmer explicitly specifying input and output the programmer defines a process for generating inputs, which we call a **generator**, and **properties** that must hold for the output. By using the computer to generate the input many more inputs can be generated than when the programmer must specify them by hand.
 
-Property based testing has increasing adoption within industry, with libraries available in many popular languages. However, this doesn&rsquo;t mean existing practice cannot be improved. One issue, often overlooked, is that the diversity within the generated output may be lower than expected. We will formalize measurement of diversity later; informally we are interested in the distance between the generated inputs. We hypothesize that greater input diversity will lead to increased test coverage.
+Property based testing has increasing adoption within industry, with libraries available in many popular languages. However, this doesn't mean existing practice cannot be improved. Our goal here is to make such an improvement by focusing on how generators create the test inputs. 
 
-There are two issues with test diversity in property based testing:
+The typical property based testing library provides an API to construct generators. The standard approach is an implementation of the probability monad, which is simple to implement and reasonably easy to use. The generators so constructed can be viewed as functions from a source of randomness to an output of the desired type: the input to the function under test.
 
-1.  A generator defines a distribution over test inputs. Most programmers are not statisticians, and in practice little attention is paid to the properties of the distribution.
+Ideally, the output of a generator should be highly **diverse**. We put off defining diversity here; we'll be more formal later. Intuitively we want the generated outputs to be as different from each other as possible, to maximize the chances of finding bugs. Random generation is not the best choice for achieving this goal for two reasons: 
 
-2.  Randomly generated data often displays &ldquo;clumping&rdquo;: data points that are near to one another. In the property based testing setting, this is often not what we want. Rather we would like roughly equal density of generated data over the space of inputs.
+1.  A generator defines a distribution over test inputs. Most programmers are not statisticians, and in practice little attention is paid to the properties of the distribution and they may end up with undesirable properties.
 
-In this paper we look at the task of generating diverse inputs in property based testing. We start by illustrating the problem in practice. When then discuss how we can formalize the notion of diversity, drawing on ideas from quasirandom sequences and Bayesian statistics. We then show how these ideas can be realized in a concrete implementation, which we use to verify the utility of our ideas on several real-world problems.
+2.  Randomly generated data often displays ``clumping'': data points that are near to one another, or even exactly the same. A purely random process is an inefficient way to explore the space of test inputs.
+
+Our focus here is on the second point, though we'll briefly touch on the first as well.
+
+In this paper we look at the task of generating diverse inputs in property based testing. We start by illustrating the problem in practice. When then formalize the setting, and discuss how we can formalize the notion of diversity. We then discuss algorithms to increase diversity, and test these algorithms on several real-world problems.
 
 
 ## The Problem of Diversity in Test Input Generation
 
-Let&rsquo;s start with an example of a very simple property based test, taken from the Doodle library. Doodle, written in Scala, is a library for two-dimensional graphics. Color is a core abstraction in Doodle, and colors can be specified in two equivalent ways:
+Let's start with an example of a very simple property based test, taken from the Doodle library. Doodle, written in Scala, is a library for two-dimensional graphics. Color is a core abstraction in Doodle, and colors can be specified in two equivalent ways:
 
 -   as a triple of red, green, and blue values (RGB); or
 -   as a triple of hue, saturation, and lightness (HSL).
@@ -61,8 +65,14 @@ val color: Gen[HSLA] =
   } yield Color.HSLA(h, s, l, a)
 ```
 
+Samples.
 
-## Measuring Diversity
+This illustrates the two problems we described above.
+
+
+## Formalism
+
+We're now ready to formalize our setting. 
 
 One way to measure diversity is to use Bayesian surprise\citep{NIPS2005_BayesianSurprise}. Given data $D$, in this case samples from a generator, and a model $M$, in this case a generator, Bayesian surprise is defined as
 

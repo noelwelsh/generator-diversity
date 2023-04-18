@@ -2,19 +2,19 @@
 
 ## Introduction
 
-Unit testing is the dominant approach to testing in industry. Unit testing requires the programmer explicitly defines inputs and expected outputs for the function under test. The test coverage of unit testing is limited by the amount of effort the programmer expends in creating distinct input and output pairs. 
+Unit testing is the dominant approach to testing in the software industry. Unit testing requires the programmer explicitly defines inputs and expected outputs for the function under test. The test coverage of unit testing is limited by the amount of effort the programmer expends in creating distinct input and output pairs. 
 
 Property based testing, or generative testing, is a lightweight extension of unit testing that aims to increase test coverage. Instead of the programmer explicitly specifying input and output the programmer defines a process for generating inputs, which we call a **generator**, and **properties** that must hold for the output. By using the computer to generate the input many more inputs can be generated than when the programmer must specify them by hand.
 
 Property based testing has increasing adoption within industry, with libraries available in many popular languages. However, this doesn't mean existing practice cannot be improved. Our goal here is to make such an improvement by focusing on how generators create the test inputs. 
 
-The typical property based testing library provides an API to construct generators. The standard approach is an implementation of the probability monad, which is simple to implement and reasonably easy to use. The generators so constructed can be viewed as functions from a source of randomness to an output of the desired type: the input to the function under test.
+Property based testing libraries provides an API to construct generators. The standard approach is an implementation of the probability monad, which is simple to implement and reasonably easy to use. The generators so constructed can be viewed as functions from a source of randomness to an output of the desired type: the input to the function under test.
 
 Ideally, the output of a generator should be highly **diverse**. We put off defining diversity here; we'll be more formal later. Intuitively we want the generated outputs to be as different from each other as possible, to maximize the chances of finding bugs. Random generation is not the best choice for achieving this goal for two reasons: 
 
-1.  A generator defines a distribution over test inputs. Most programmers are not statisticians, and in practice little attention is paid to the properties of the distribution and they may end up with undesirable properties.
+1.  A generator defines a distribution over test inputs. Most programmers are not statisticians, and in practice little attention is paid to the properties of this distribution and in practice generators often have undesirable properties.
 
-2.  Randomly generated data often displays ``clumping'': data points that are near to one another, or even exactly the same. A purely random process is an inefficient way to explore the space of test inputs.
+2.  Randomly generation is an inefficient way to explore the space of test inputs. Randomly generated data often displays ``clumping'': data points that are near to one another, or even exactly the same. 
 
 Our focus here is on the second point, though we'll briefly touch on the first as well.
 
@@ -47,7 +47,9 @@ object ColorSpec extends Properties("Color properties") {
 }
 ```
 
-These tests rely on generators to produce HSL and RGB colors. The definitions of the HSL generator are shown below.
+Here, the `~=` operator denotes approximate equality.
+
+These tests rely on generators to produce HSL and RGB colors. The definitions of the HSL generator are shown below. In words, this simply samples an angle uniformly in the range 0 to 360 degrees, and saturation and lightness uniformly in the range 0.0 to 1.0.
 
 ```scala
 val angle: Gen[Angle] =
@@ -65,9 +67,18 @@ val color: Gen[HSLA] =
   } yield Color.HSLA(h, s, l, a)
 ```
 
-Samples.
+[@Fig:random-is-bad] shows 100 and 1000 colors respectively, sampled as described above except that lightness is fixed to 0.7. Fixing lightness makes no substantive change to the points we wish to illustrate, but the two-dimensional visualization is easier to interpret.
 
-This illustrates the two problems we described above.
+![100 and 1000 random colors, keeping lightness constant but allowing hue and saturation to vary](random-is-bad.pdf){#fig:random-is-bad}
+
+This illustrates both issues we originally raised with random sampling: the straightforward definitions of generatos may have undesirable properties, and that random sampling is inefficient. Let's look at both in turn.
+
+Firstly, notice that with 1000 samples the density of samples is greater at the centre of the circle than the edges. This is a flaw with our definition of the generating distribution. Chosing angle (hue) and radius (saturation) both uniformly at random does not give a uniform distribution over a circle because the area of the circle is more concentrated to the outside of the circle. To correctly sample uniformly over the circle we should bias to larger values of the radius; to be precise, if we transform that uniform distribution by the square root we get the desired output. This is well known in certain circles (pun very much intended) but we should not expect the average programmer to be aware of these details.
+
+Looking at the picture of 100 samples notice how the samples are clumped together, both because of the issue with the definition of the generator discussed above and also just because of the nature of random samples. This clumping is also evident in the picture showing 1000 samples. Without some prior knowledge of where in the sample space bugs are found we should aim to sample
+with uniform density across the space.
+
+This simple example illustrates the issues with random sampling. Most programmer deal with discrete structures, like lists and trees, which do not lend themselves to such simple visualization and analysis. What we desire is a general purpose algorithm that can take a description of a generator and produce high quality output. As our first step to this, in the next section we formalize the problem as one of exploration in a reinforcement learning setting.
 
 
 ## Formalism

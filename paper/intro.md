@@ -78,70 +78,34 @@ Firstly, notice that with 1000 samples the density of samples is greater at the 
 Looking at the picture of 100 samples notice how the samples are clumped together, both because of the issue with the definition of the generator discussed above and also just because of the nature of random samples. This clumping is also evident in the picture showing 1000 samples. Without some prior knowledge of where in the sample space bugs are found we should aim to sample
 with uniform density across the space.
 
-This simple example illustrates the issues with random sampling. Most programmer deal with discrete structures, like lists and trees, which do not lend themselves to such simple visualization and analysis. What we desire is a general purpose algorithm that can take a description of a generator and produce high quality output. As our first step to this, in the next section we formalize the problem as one of exploration in a reinforcement learning setting.
+This simple example illustrates the issues with random sampling. Most programmer deal with discrete structures, like lists and trees, which do not lend themselves to such simple visualization and analysis. What we desire is a general purpose algorithm that can take a description of a generator and produce high quality output. As our first step to this, in the next section we formalize the problem as one of graph search.
 
 
 ## Formalism
 
-We're now ready to formalize our setting. 
-
-One way to measure diversity is to use Bayesian surprise\citep{NIPS2005_BayesianSurprise}. Given data $D$, in this case samples from a generator, and a model $M$, in this case a generator, Bayesian surprise is defined as
-
-\begin{equation}
-Surprise(D, M) = KL(P(M | D), P(M))
-\end{equation}
-
-$KL$ is the KL-divergence, defined as
-
-\begin{equation}
-KL(P(M | D), P(M)) = \int_M P(M | D)  log\big( \frac{P(M|D)}{P(M)} \big)dM
-\end{equation}
-
-There are several terms in the equations above that are standard in Bayesian statistics but it is perhaps not clear how they relate to generators. What follows is brief sketch of Bayesian statistics.
-
-Let&rsquo;s assume we have some way of generating data, our generator, which assigns a probability to each possible output. In other words, the generator defines a probability distribution. In keeping with the definitions above, we&rsquo;ll label our generator $M$, and the data $D$. The generator defines $P(D | M)$, the probability of the data given the generator.
-
-In the Bayesian view we don&rsquo;t commit to single generator but instead consider a distribution over generators $P(M)$. This is known as the **prior distribution**. When we see data we can update this distribution to produce $P(M | D)$, the distribution over generators given data, known as the **posterior distribution**. How do we compute the posterior? Bayes theorem tells us that
-
-\begin{equation}
-P(M | D) = \frac{P(D|M)P(M)}{P(D)}
-\end{equation}
-
-where
-
-\begin{equation}
-P(D) = \int_M P(D|M)P(M)
-\end{equation}
-
-This tells us in theory how we can compute the posterior, but how does it work in practice? The answer is that it depends on the particular form of the prior. There is a class of prior distributions for which we easily compute the posterior. These are known as **conjugate priors**. If $M$ is choosing between discrete choices (a categorical distribution) and we use the Dirichlet distribution as our prior, the posterior will also be a Dirichlet distribution. There is also a simple rule that relates the posterior to the prior. Hence the Dirichlet is called the conjugate prior for the categorical distribution.
-
-Note the `Select` function in **Parsing Randomness** is a categorical distribution, and thus the Dirichlet is an appropriate prior for it.
-
-We&rsquo;ve now defined all the terms in the definition of Bayesian surprise, but it&rsquo;s worth quickly emphasizing the implications for generators. The first implication is that we don&rsquo;t view a generator as defining a particular distribution, but rather defining a family of distributions. This is actually implicit in the definition of free generators, as they do not have probabilities attached to choices. Developers do not pay any particular attention to the distribution their generators define, in my experience, so this also does not conflict with the practice of property based testing. The second implication is that the posterior makes the observed data more likely, and hence less surprising should it be generated again, and therefore the posterior acts as a summary of the data that has been generated to date.
-
 
 ## Generators as Distributions
 
-Generators implicitly define a family of distributions, but we need an explicit definition if we&rsquo;re to perform the updates we need to calculate the posterior and measure Bayesian surprise.
+Generators implicitly define a family of distributions, but we need an explicit definition if we're to perform the updates we need to calculate the posterior and measure Bayesian surprise.
 
 Free generators have a single random choice operator, `Select`, for which a reasonable prior is the uniform Dirichlet over the choices given to `Select`. This, taken together with the pure computation that computes the rest of the generator, defines the prior over the generator.
 
-There is a problem, which is the same problem that makes any static analysis of monads difficult: the functions passed to `bind` can make choices at runtime and we may not be able to statically determine what those possible choices are. (If we&rsquo;re prepared to work in the more restrictive setting of selective or applicative functors, then we have no issue.) We can think of a generator as defining a (possibly infinite) tree of choice sequences. If we&rsquo;ve never visited a particular part of the tree, any `Selects` within that part will have the prior distribution. We can distinguish other, observed, parts of the tree by the choice sequence that leads to them. Thus we can model the distribution over generators as a map from choice sequences to Dirichlet distributions.
+There is a problem, which is the same problem that makes any static analysis of monads difficult: the functions passed to `bind` can make choices at runtime and we may not be able to statically determine what those possible choices are. (If we're prepared to work in the more restrictive setting of selective or applicative functors, then we have no issue.) We can think of a generator as defining a (possibly infinite) tree of choice sequences. If we've never visited a particular part of the tree, any `Selects` within that part will have the prior distribution. We can distinguish other, observed, parts of the tree by the choice sequence that leads to them. Thus we can model the distribution over generators as a map from choice sequences to Dirichlet distributions.
 
 
 ## Calculating Bayesian Surprise
 
 We can use a Monte Carlo scheme to approximate Bayesian surprise. All we have to do it sample distributions from the posteriors, calculate Bayesian surprise for the data $D$ on these sampled distributions, and average over all the samples. This should be sufficient for at least initial results.
 
-The structure of our generator is called a **belief network** or **Bayesian network** and inference in a belief network is NP-hard. Belief networks are in general DAGs, while generators are trees, so there may be a special purpose algorithm we can use. I don&rsquo;t know of one and a quick search didn&rsquo;t find one.
+The structure of our generator is called a **belief network** or **Bayesian network** and inference in a belief network is NP-hard. Belief networks are in general DAGs, while generators are trees, so there may be a special purpose algorithm we can use. I don't know of one and a quick search didn't find one.
 
 
 ### Algorithms for Maximising Bayesian Surprise
 
-Now let&rsquo;s turn to algorithms that generate data that maximises Bayesian surprise. This is in general intractable, because it reduces to a search over the possibly infinite space of all possible data a generator can generate, or the equivalent search over the possibly infinite tree of choice sequences. We can instead imple ment an approximation. Below are two very simple greedy algorithms. This general problem feels very similar to the explore / exploit problem in bandit algorithms and reinforcement learning, so using ideas from there may be useful.
+Now let's turn to algorithms that generate data that maximises Bayesian surprise. This is in general intractable, because it reduces to a search over the possibly infinite space of all possible data a generator can generate, or the equivalent search over the possibly infinite tree of choice sequences. We can instead imple ment an approximation. Below are two very simple greedy algorithms. This general problem feels very similar to the explore / exploit problem in bandit algorithms and reinforcement learning, so using ideas from there may be useful.
 
 
-### &epsilon;-Greedy Algorithm
+### $\epsilon$-Greedy Algorithm
 
 The general idea is that, when encountering a `Select` we should choose the least likely option with probability $\epsilon$ and otherwise choose another option. There are many possible definitions for &ldquo;choose another option&rdquo;. A simple example is to choose with uniform probability over all the remaining options.
 

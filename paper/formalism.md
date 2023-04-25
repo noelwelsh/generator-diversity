@@ -8,9 +8,7 @@ We have a generator $g: Random \rightarrow A$, where $Random$ is some source of 
 
 Finally we have some post-condition $post: B \rightarrow Bool$, that determines if $f$'s output is acceptable, given some choice of input.
 
-Generators define a graph, or more correctly a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another.
-
-This allows
+Generators define a graph, or more correctly a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another. This allows us to formulate the data generation problem as one of graph search.
 
 
 One way to measure diversity is to use Bayesian surprise. Given data $D$, in this case samples from a generator, and a model $M$, in this case a generator, Bayesian surprise is defined as

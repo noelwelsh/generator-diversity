@@ -1,4 +1,4 @@
-# Formalism
+# Test Input Generation as Graph Search
 
 We're now ready to formalize our setting. We start by formalizing the testing setting, and then turn to generators.
 
@@ -8,8 +8,17 @@ We have a generator $g: Random \rightarrow A$, where $Random$ is some source of 
 
 Finally we have some post-condition $post: B \rightarrow Bool$, that determines if $f$'s output is acceptable, given some choice of input.
 
-Generators define a graph, or more correctly a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another. This allows us to formulate the data generation problem as one of graph search.
+Generators define a directed graph, or more correctly a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another. This allows us to formulate the data generation problem as one of graph search.
 
+*This needs more exposition*
+
+This formulation allows us to immediately formulate three baseline algorithm for data generation:
+
+1. random sampling, which is the current practice and which we have discussed earlier;
+2. breadth-first search to enumerate all possible test inputs; and
+3. depth-first search, also to enumerate all possible test inputs.
+
+In general the size of the set of test inputs is infinite, so complete enumeration is not feasible.
 
 One way to measure diversity is to use Bayesian surprise. Given data $D$, in this case samples from a generator, and a model $M$, in this case a generator, Bayesian surprise is defined as
 

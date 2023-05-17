@@ -4,11 +4,11 @@ We're now ready to formalize our setting. We start by formalizing the testing se
 
 The function under test is an arbitrary function $f: A \rightarrow B$. Our only requirement is that $f$ is a pure function; in other words, it is deterministic. (If this is not the case the whole testing enterprise is pointless.)
 
-We have a generator $g: Random \rightarrow A$, where $Random$ is some source of randomness. Our generators follow the structure in "Parsing Randomness".
+A generator is a function $g: Random \rightarrow A$, where $Random$ is some source of randomness. Our generators follow the structure in "Parsing Randomness".
 
 Finally we have some post-condition $post: B \rightarrow Bool$, that determines if $f$'s output is acceptable.
 
-Generators define a directed graph, or more correctly a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another. This allows us to formulate the data generation problem as one of graph search.
+Generators define a directed graph, or more specifically a tree, of possible program executions. Vertices in the graph are calls to `Select`, and edges are the deterministic execution that occurs between one call to `Select` and another. This allows us to formulate the data generation problem as one of graph search. Generating data involves following edges through the graph until they terminate at a node with no further edges: a **sink**. How we choose between available edges is where things get interesting. In the next section we discuss algorithms for graph search.
 
 *This needs more exposition*
 
